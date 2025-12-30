@@ -4,34 +4,50 @@ AI-агент для поиска товаров и создания корзи�
 
 ## 🚀 Быстрый старт
 
-### 1. Установка зависимостей
+### Вариант 1: Docker (рекомендуется)
 
 ```bash
-# Создать виртуальное окружение
+# 1. Клонировать репозиторий
+git clone git@github.com:vakovalskii/vkusvill-agent.git
+cd vkusvill-agent
+
+# 2. Настроить config.yaml (добавить свой API ключ)
+nano config.yaml
+
+# 3. Запустить через Docker Compose
+docker-compose up -d
+
+# 4. Проверить статус
+curl http://localhost:8000/health
+
+# 5. Использовать API
+curl -X POST http://localhost:8000/task \
+  -H "Content-Type: application/json" \
+  -d '{"task": "Найди хлеб свежий"}'
+```
+
+**API Документация:** http://localhost:8000/docs
+
+### Вариант 2: Локальная установка
+
+```bash
+# 1. Создать виртуальное окружение
 conda create -n vkusvill python=3.11
 conda activate vkusvill
 
-# Установить зависимости
+# 2. Установить зависимости
 pip install -e .
-```
 
-### 2. Настройка конфигурации
+# 3. Настроить config.yaml (добавить свой API ключ)
+nano config.yaml
 
-Отредактируйте `config.yaml`:
-
-```yaml
-llm:
-  api_key: "your-api-key"  # Ваш OpenAI API ключ
-  base_url: "https://openai-hub.neuraldeep.tech/v1"
-  model: "gpt-4.1-mini"
-  max_tokens: 8000
-  temperature: 0.1
-```
-
-### 3. Запуск агента
-
-```bash
+# 4. Запустить агента (CLI)
 python main.py
+
+# ИЛИ запустить API сервер
+python api.py
+# или
+uvicorn api:app --host 0.0.0.0 --port 8000
 ```
 
 ## 📋 Возможности
@@ -75,7 +91,33 @@ python main.py
 
 ## 📊 Примеры использования
 
-### Простой поиск
+### API (HTTP)
+
+```bash
+# Простой поиск
+curl -X POST http://localhost:8000/task \
+  -H "Content-Type: application/json" \
+  -d '{"task": "Найди хлеб свежий"}'
+
+# Поиск с деталями
+curl -X POST http://localhost:8000/task \
+  -H "Content-Type: application/json" \
+  -d '{"task": "Найди молоко и покажи состав"}'
+
+# Создание корзины
+curl -X POST http://localhost:8000/task \
+  -H "Content-Type: application/json" \
+  -d '{"task": "Найди хлеб, молоко и яйца, создай корзину"}'
+
+# Список доступных агентов
+curl http://localhost:8000/agents
+
+# Health check
+curl http://localhost:8000/health
+```
+
+### Python (CLI)
+
 ```python
 agent1 = await AgentFactory.create(
     agent_def=config.agents["vkusvill_shopping_agent"],
@@ -84,22 +126,17 @@ agent1 = await AgentFactory.create(
 result = await agent1.execute()
 ```
 
-### Поиск с деталями
-```python
-agent1 = await AgentFactory.create(
-    agent_def=config.agents["vkusvill_shopping_agent"],
-    task="Найди молоко и покажи состав",
-)
-result = await agent1.execute()
-```
+### Python (API Client)
 
-### Создание корзины
 ```python
-agent1 = await AgentFactory.create(
-    agent_def=config.agents["vkusvill_shopping_agent"],
-    task="Найди хлеб, молоко и яйца, создай корзину",
+import requests
+
+response = requests.post(
+    "http://localhost:8000/task",
+    json={"task": "Найди хлеб свежий"}
 )
-result = await agent1.execute()
+result = response.json()
+print(result["result"])
 ```
 
 ## ⚙️ Конфигурация
@@ -156,15 +193,66 @@ INFO: Step 1 started
 
 MCP клиент остается открытым на протяжении всей работы агента, что уменьшает накладные расходы на переподключения.
 
+## 🐳 Docker
+
+### Сборка и запуск
+
+```bash
+# Сборка образа
+docker build -t vkusvill-agent .
+
+# Запуск контейнера
+docker run -d \
+  -p 8000:8000 \
+  -v $(pwd)/logs:/app/logs \
+  -v $(pwd)/config.yaml:/app/config.yaml \
+  --name vkusvill-agent \
+  vkusvill-agent
+
+# Или через docker-compose
+docker-compose up -d
+```
+
+### Управление
+
+```bash
+# Просмотр логов
+docker-compose logs -f
+
+# Остановка
+docker-compose down
+
+# Перезапуск
+docker-compose restart
+
+# Пересборка
+docker-compose up -d --build
+```
+
+### Переменные окружения
+
+Можно передать через docker-compose.yml или `-e`:
+
+```yaml
+environment:
+  - OPENAI_API_KEY=your-key
+  - OPENAI_BASE_URL=https://openai-hub.neuraldeep.tech/v1
+```
+
 ## 📁 Структура проекта
 
 ```
-sgr-agent-core/
+vkusvill-agent/
 ├── config.yaml              # Конфигурация LLM и выполнения
 ├── agents.yaml              # Определение VkusVill агента
 ├── logging_config.yaml      # Настройки логирования
-├── main.py                  # Точка входа
+├── main.py                  # CLI точка входа
+├── api.py                   # FastAPI сервер
+├── Dockerfile               # Docker образ
+├── docker-compose.yml       # Docker Compose конфигурация
+├── .dockerignore            # Исключения для Docker
 ├── logs/                    # JSON логи выполнения
+├── reports/                 # Отчеты агента
 ├── sgr_agent_core/          # Основной код фреймворка
 │   ├── agents/              # Реализации агентов
 │   ├── services/            # MCP сервисы

@@ -83,12 +83,18 @@ class SGRAgent(BaseAgent):
         return tool
 
     async def _action_phase(self, tool: BaseTool) -> str:
+        import time
+        start_time = time.time()
+        
         result = await tool(self._context, self.config)
+        
+        execution_time = time.time() - start_time
+        
         self.conversation.append(
             {"role": "tool", "content": result, "tool_call_id": f"{self._context.iteration}-action"}
         )
         self.streaming_generator.add_chunk_from_str(f"{result}\n")
-        self._log_tool_execution(tool, result)
+        self._log_tool_execution(tool, result, execution_time)
         return result
 
 

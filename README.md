@@ -1,62 +1,197 @@
-# SGR Agent Core — the first SGR open-source agentic framework for Schema-Guided Reasoning
+# VkusVill Shopping Agent
 
-## Description
+AI-агент для поиска товаров и создания корзины покупок в магазине ВкусВилл.
 
-![SGR Concept Architecture](https://github.com/vamplabAI/sgr-agent-core/blob/main/docs/assets/images/sgr_concept.png)
-Open-source agentic framework for building intelligent research agents using Schema-Guided Reasoning. The project provides a core library with a extendable BaseAgent interface implementing a two-phase architecture and multiple ready-to-use research agent implementations built on top of it.
+## 🚀 Быстрый старт
 
-The library includes extensible tools for search, reasoning, and clarification, real-time streaming responses, OpenAI-compatible REST API. Works with any OpenAI-compatible LLM, including local models for fully private research.
+### 1. Установка зависимостей
 
-______________________________________________________________________
+```bash
+# Создать виртуальное окружение
+conda create -n vkusvill python=3.11
+conda activate vkusvill
 
-## Documentation
+# Установить зависимости
+pip install -e .
+```
 
-> **Get started quickly with our documentation:**
+### 2. Настройка конфигурации
 
-- **[Project Docs](https://vamplabai.github.io/sgr-agent-core/)** - Complete project documentation
-- **[Framework Quick Start Guide](https://vamplabai.github.io/sgr-agent-core/framework/first-steps/)** - Get up and running in minutes
-- **[DeepSearch Service Documentation](https://vamplabai.github.io/sgr-agent-core/sgr-api/SGR-Quick-Start/)** - REST API reference with examples
+Отредактируйте `config.yaml`:
 
-______________________________________________________________________
+```yaml
+llm:
+  api_key: "your-api-key"  # Ваш OpenAI API ключ
+  base_url: "https://openai-hub.neuraldeep.tech/v1"
+  model: "gpt-4.1-mini"
+  max_tokens: 8000
+  temperature: 0.1
+```
 
-## Benchmarking
+### 3. Запуск агента
 
-![SimpleQA Benchmark Comparison](https://github.com/vamplabAI/sgr-agent-core/blob/main/docs/assets/images/simpleqa_benchmark_comparison.png)
+```bash
+python main.py
+```
 
-**Performance Metrics on gpt-4.1-mini:**
+## 📋 Возможности
 
-- **Accuracy:** 86.08%
-- **Correct:** 3,724 answers
-- **Incorrect:** 554 answers
-- **Not Attempted:** 48 answers
+Агент умеет:
 
-More detailed benchmark results are available [here](https://github.com/vamplabAI/sgr-agent-core/blob/main/benchmark/simpleqa_benchmark_results.md).
+- 🔍 **Поиск товаров** - находит товары по ключевым словам
+- 📊 **Сортировка** - по популярности, рейтингу, цене
+- 🛒 **Создание корзины** - автоматически создает ссылку на корзину с выбранными товарами
+- 📝 **Детали товара** - показывает состав и КБЖУ (по запросу)
 
-______________________________________________________________________
+## 🛠️ Доступные инструменты
 
-## Open-Source Development Team
+### 1. vkusvill_products_search
+Поиск товаров по ключевым словам.
 
-*All development is driven by pure enthusiasm and open-source community collaboration. We welcome contributors of all skill levels!*
+**Параметры:**
+- `q` (string) - поисковый запрос
+- `page` (int) - номер страницы (по умолчанию 1)
+- `sort` (string) - сортировка: `popularity`, `rating`, `price_asc`, `price_desc`
 
-- **SGR Concept Creator** // [@abdullin](https://t.me/llm_under_hood)
-- **Project Coordinator & Vision** // [@VaKovaLskii](https://t.me/neuraldeep)
-- **Lead Core Developer** // [@virrius](https://t.me/virrius_tech)
-- **API Development** // [Pavel Zloi](https://t.me/evilfreelancer)
-- **Hybrid FC research** // [@Shadekss](https://t.me/Shadekss)
-- **DevOps & Deployment** // [@mixaill76](https://t.me/mixaill76)
+**Возвращает:** список товаров с id, xml_id, названием, ценой, рейтингом и фото
 
-If you have any questions - feel free to join our [community chat](https://t.me/sgragentcore)↗️ or reach out [Valerii Kovalskii](https://www.linkedin.com/in/vakovalskii/)↗️.
+### 2. vkusvill_product_details
+Детальная информация о товаре.
 
-## Special Thanks To:
+**Параметры:**
+- `id` (int) - ID товара из результатов поиска
 
-This project is developed by the **neuraldeep** community. It is inspired by the Schema-Guided Reasoning (SGR) work and [SGR Agent Demo](https://abdullin.com/schema-guided-reasoning/demo)↗️ delivered by "LLM Under the Hood" community and AI R&D Hub of [TIMETOACT GROUP Österreich](https://www.timetoact-group.at)↗️
+**Возвращает:** состав, КБЖУ, детальное описание
 
-![](./docs/assets/images/rmr750x200.png)
+### 3. vkusvill_cart_link_create
+Создание ссылки на корзину.
 
-This project is supported by the AI R&D team at red_mad_robot, providing research capacity, engineering expertise, infrastructure, and operational support.
+**Параметры:**
+- `products` (array) - массив объектов `[{xml_id: int, q: float}, ...]`
+  - `xml_id` - используй xml_id из результатов поиска (НЕ id!)
+  - `q` - количество товара (0.01-40)
 
-Learn more about red_mad_robot: [redmadrobot.ai](https://redmadrobot.ai/)↗️ [habr](https://habr.com/ru/companies/redmadrobot/articles/)↗️ [telegram](https://t.me/Redmadnews/)↗️
+**Возвращает:** ссылка на корзину ВкусВилл
 
-## Star History
+## 📊 Примеры использования
 
-[![Star History Chart](https://api.star-history.com/svg?repos=vamplabAI/sgr-agent-core&type=Date)](https://star-history.com/#vamplabAI/sgr-agent-core&Date)
+### Простой поиск
+```python
+agent1 = await AgentFactory.create(
+    agent_def=config.agents["vkusvill_shopping_agent"],
+    task="Найди хлеб свежий",
+)
+result = await agent1.execute()
+```
+
+### Поиск с деталями
+```python
+agent1 = await AgentFactory.create(
+    agent_def=config.agents["vkusvill_shopping_agent"],
+    task="Найди молоко и покажи состав",
+)
+result = await agent1.execute()
+```
+
+### Создание корзины
+```python
+agent1 = await AgentFactory.create(
+    agent_def=config.agents["vkusvill_shopping_agent"],
+    task="Найди хлеб, молоко и яйца, создай корзину",
+)
+result = await agent1.execute()
+```
+
+## ⚙️ Конфигурация
+
+### config.yaml
+Основная конфигурация агента:
+- LLM настройки (API ключ, модель, температура)
+- Параметры выполнения (макс. итераций, лимиты)
+- MCP сервер (URL VkusVill API)
+
+### agents.yaml
+Определение агента:
+- Системный промпт
+- Доступные инструменты
+- MCP конфигурация
+
+### logging_config.yaml
+Настройки логирования:
+- Уровни логов для разных модулей
+- Форматы вывода
+- Файловое логирование
+
+## 📝 Логирование
+
+Агент создает два типа логов:
+
+1. **Консольный вывод** - чистый вывод с временем выполнения инструментов
+2. **JSON логи** - структурированные логи в `logs/` директории
+
+### Пример вывода:
+```
+INFO: Step 1 started
+
+###############################################
+🛠️ TOOL EXECUTION ⏱️ 0.85s:
+    🔧 Tool Name: vkusvill_products_search
+    📋 Tool Model: {"q": "хлеб свежий", ...}
+    🔍 Result: '{"ok": true, ...}'
+###############################################
+```
+
+## 🔧 Оптимизация
+
+### Уменьшение количества шагов
+
+Агент оптимизирован для минимального количества шагов:
+1. Поиск товаров
+2. Создание корзины
+3. Финальный ответ
+
+**Без лишних вызовов** `vkusvill_product_details` (только по явному запросу).
+
+### Persistent MCP Client
+
+MCP клиент остается открытым на протяжении всей работы агента, что уменьшает накладные расходы на переподключения.
+
+## 📁 Структура проекта
+
+```
+sgr-agent-core/
+├── config.yaml              # Конфигурация LLM и выполнения
+├── agents.yaml              # Определение VkusVill агента
+├── logging_config.yaml      # Настройки логирования
+├── main.py                  # Точка входа
+├── logs/                    # JSON логи выполнения
+├── sgr_agent_core/          # Основной код фреймворка
+│   ├── agents/              # Реализации агентов
+│   ├── services/            # MCP сервисы
+│   └── base_agent.py        # Базовый класс агента
+└── README.md                # Эта документация
+```
+
+## 🐛 Отладка
+
+Для включения детальных логов измените в `logging_config.yaml`:
+
+```yaml
+sgr_agent_core:
+  level: DEBUG  # Вместо INFO
+
+httpx:
+  level: INFO  # Вместо ERROR
+```
+
+## 📄 Лицензия
+
+MIT License
+
+## 🤝 Поддержка
+
+Для вопросов и предложений создавайте issue в репозитории.
+
+---
+
+**Создано с использованием SGR Agent Core Framework**

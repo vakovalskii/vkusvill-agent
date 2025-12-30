@@ -36,7 +36,7 @@ handlers:
 loggers:
   # Main application logger - all our modules inherit from it
   root:
-    level: INFO
+    level: WARNING
     handlers: [ console, console_error, file ]
 
 
@@ -47,10 +47,43 @@ loggers:
     level: INFO
 
   httpx:
-    level: WARNING
+    level: ERROR
+
+  httpcore:
+    level: ERROR
+  
+  httpcore.http11:
+    level: ERROR
+  
+  httpcore.connection:
+    level: ERROR
 
   mcp:
-    level: WARNING
+    level: ERROR
+  
+  mcp.client:
+    level: ERROR
+  
+  mcp.client.streamable_http:
+    level: ERROR
+  
+  mcp.server:
+    level: ERROR
+  
+  mcp.server.lowlevel:
+    level: ERROR
+  
+  mcp.server.lowlevel.server:
+    level: ERROR
+  
+  docket:
+    level: ERROR
+  
+  fakeredis:
+    level: ERROR
+  
+  anyio:
+    level: ERROR
 
   urllib3:
-    level: WARNING
+    level: ERROR

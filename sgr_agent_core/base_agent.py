@@ -92,11 +92,12 @@ class BaseAgent(AgentRegistryMixin):
             }
         )
 
-    def _log_tool_execution(self, tool: BaseTool, result: str):
+    def _log_tool_execution(self, tool: BaseTool, result: str, execution_time: float = None):
+        time_str = f" ⏱️ {execution_time:.2f}s" if execution_time else ""
         self.logger.info(
             f"""
 ###############################################
-🛠️ TOOL EXECUTION DEBUG:
+🛠️ TOOL EXECUTION{time_str}:
     🔧 Tool Name: {tool.tool_name}
     📋 Tool Model: {tool.model_dump_json(indent=2)}
     🔍 Result: '{result[:400]}...'
@@ -108,6 +109,7 @@ class BaseAgent(AgentRegistryMixin):
                 "timestamp": datetime.now().isoformat(),
                 "step_type": "tool_execution",
                 "tool_name": tool.tool_name,
+                "execution_time_seconds": execution_time,
                 "agent_tool_context": tool.model_dump(),
                 "agent_tool_execution_result": result,
             }
@@ -124,6 +126,27 @@ class BaseAgent(AgentRegistryMixin):
 
         os.makedirs(logs_dir, exist_ok=True)
         filepath = os.path.join(logs_dir, f"{datetime.now().strftime('%Y%m%d-%H%M%S')}-{self.id}-log.json")
+        
+        def make_serializable(obj):
+            """Recursively convert objects to JSON-serializable format"""
+            if obj is None or isinstance(obj, (str, int, float, bool)):
+                return obj
+            elif isinstance(obj, dict):
+                return {k: make_serializable(v) for k, v in obj.items()}
+            elif isinstance(obj, (list, tuple)):
+                return [make_serializable(item) for item in obj]
+            elif hasattr(obj, 'model_dump'):
+                # Pydantic model - use mode='json' to handle enums
+                return obj.model_dump(mode='json')
+            elif hasattr(obj, '__dict__'):
+                # Complex object - try to serialize its dict or convert to string
+                try:
+                    return make_serializable(obj.__dict__)
+                except:
+                    return str(obj)
+            else:
+                return str(obj)
+        
         agent_log = {
             "id": self.id,
             "model_config": self.config.llm.model_dump(
@@ -131,7 +154,7 @@ class BaseAgent(AgentRegistryMixin):
             ),  # Sensitive data excluded by default
             "task": self.task,
             "toolkit": [tool.tool_name for tool in self.toolkit],
-            "log": self.log,
+            "log": make_serializable(self.log),
         }
 
         json.dump(agent_log, open(filepath, "w", encoding="utf-8"), indent=2, ensure_ascii=False)

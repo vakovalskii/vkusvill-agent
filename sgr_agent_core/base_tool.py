@@ -45,16 +45,19 @@ class MCPBaseTool(BaseTool):
     """Base model for MCP Tool schema."""
 
     _client: ClassVar[Client | None] = None
+    _client_config: ClassVar = None
 
     async def __call__(self, context: AgentContext, config: AgentConfig, **kwargs) -> str:
         config = GlobalConfig()
         payload = self.model_dump()
+        
         try:
-            async with self._client:
-                result = await self._client.call_tool(self.tool_name, payload)
-                return json.dumps([m.model_dump_json() for m in result.content], ensure_ascii=False)[
-                    : config.execution.mcp_context_limit
-                ]
+            # Use the persistent client that was initialized during tool creation
+            # The client is already connected and will remain open for the agent's lifetime
+            result = await self._client.call_tool(self.tool_name, payload)
+            return json.dumps([m.model_dump_json() for m in result.content], ensure_ascii=False)[
+                : config.execution.mcp_context_limit
+            ]
         except Exception as e:
             logger.error(f"Error processing MCP tool {self.tool_name}: {e}")
             return f"Error: {e}"

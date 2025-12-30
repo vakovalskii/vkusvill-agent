@@ -22,8 +22,14 @@ class MCP2ToolConverter:
         if not config.mcpServers:
             return tools
 
+        # Create a persistent client that will be shared across all tool instances
+        # httpx connection pooling is used automatically by fastmcp
         client: Client = Client(config)
-        async with client:
+        
+        # Initialize client connection for listing tools
+        await client.__aenter__()
+        
+        try:
             mcp_tools = await client.list_tools()
 
             for t in mcp_tools:
@@ -43,9 +49,18 @@ class MCP2ToolConverter:
                 )
                 ToolCls.tool_name = t.name
                 ToolCls.description = t.description or ""
+                # Store the connected client (will remain open for the agent's lifetime)
                 ToolCls._client = client
+                ToolCls._client_config = config
                 tools.append(ToolCls)
                 logger.info(f"Built MCP Tool: {ToolCls.tool_name}")
 
             logger.info(f"Built {len(tools)} MCP tools.")
-            return tools
+        except Exception as e:
+            # If error during setup, close the client
+            await client.__aexit__(None, None, None)
+            raise
+            
+        # DON'T close the client here - it will be used by tools!
+        # The client will be closed when the agent finishes
+        return tools
